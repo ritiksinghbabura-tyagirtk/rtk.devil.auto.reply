@@ -38,6 +38,17 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-</application>
+
+        <service
+            android:name=".integration.whatsapp.WhatsAppNotificationListener"
+            android:label="RTK Devil WhatsApp Auto Reply"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+    </application>
 
 </manifest>

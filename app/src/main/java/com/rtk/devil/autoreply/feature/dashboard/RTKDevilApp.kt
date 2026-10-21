@@ -1,414 +1,134 @@
 package com.rtk.devil.autoreply.feature.dashboard
 
-import com.rtk.devil.autoreply.feature.settings.AppSettingsViewModel
-import com.rtk.devil.autoreply.core.permissions.NotificationAccess
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
-import android.provider.Settings
 import android.content.Intent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import android.provider.Settings
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rtk.devil.autoreply.core.permissions.NotificationAccess
+import com.rtk.devil.autoreply.data.local.AppSettings
+import com.rtk.devil.autoreply.feature.settings.AppSettingsViewModel
 
-private val Background = Color(0xFF0B0D12)
-private val Panel = Color(0xFF171A23)
-private val Accent = Color(0xFF9B7BFF)
-private val Muted = Color(0xFFA4A8B7)
-private val Green = Color(0xFF55D6BE)
-
-private enum class Page(val title: String) {
-    HOME("Dashboard"),
-    RULES("Automation"),
-    MESSAGES("Messages"),
-    SETTINGS("Settings")
+private enum class RTKPage(val title: String, val symbol: String) {
+    HOME("Home", "⌂"),
+    WHATSAPP("WhatsApp", "W"),
+    TELEGRAM("Telegram", "T"),
+    SETTINGS("Settings", "⚙")
 }
 
 @Composable
 fun RTKDevilApp() {
-    var page by remember { mutableStateOf(Page.HOME) }
-
     val context = LocalContext.current
-    val settingsViewModel: AppSettingsViewModel = viewModel()
-    val settings by settingsViewModel.settings.collectAsState()
+    val vm: AppSettingsViewModel = viewModel()
+    val settings by vm.settings.collectAsState()
+    var page by remember { mutableStateOf(RTKPage.HOME) }
 
-    var notificationAccessGranted by remember {
-        mutableStateOf(NotificationAccess.isGranted(context))
-    }
-
-    Scaffold(
-        containerColor = Background,
-        bottomBar = {
-            NavigationBar(containerColor = Panel) {
-                Page.entries.forEach { item ->
-                    NavigationBarItem(
-                        selected = page == item,
-                        onClick = { page = item },
-                        icon = {
-                            Text(
-                                when (item) {
-                                    Page.HOME -> "⌂"
-                                    Page.RULES -> "⚡"
-                                    Page.MESSAGES -> "✉"
-                                    Page.SETTINGS -> "⚙"
-                                },
-                                fontSize = 20.sp
-                            )
-                        },
-                        label = { Text(item.title) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Accent,
-                            selectedTextColor = Accent,
-                            indicatorColor = Accent.copy(alpha = 0.16f),
-                            unselectedTextColor = Muted
-                        )
-                    )
-                }
-            }
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(padding),
-            contentPadding = PaddingValues(
-                start = 20.dp,
-                end = 20.dp,
-                top = 22.dp,
-                bottom = 28.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                Header()
-            }
-
-            item {
-                BotControlCard()
-            }
-
-            when (page) {
-                Page.HOME -> {
-                    item {
-                        HeroCard(
-                            enabled = settings.autoReplyEnabled,
-                            onToggle = settingsViewModel::setAutoReply
-                        )
-                    }
-                    item {
-                        SectionTitle("YOUR AUTOMATION")
-                    }
-                    item {
-                        SettingCard(
-                            title = "Welcome Message",
-                            subtitle = "Configure your greeting",
-                            checked = settings.welcomeEnabled,
-                            onCheckedChange = settingsViewModel::setWelcomeEnabled
-                        )
-                    }
-                    item {
-                        SettingCard(
-                            title = "Every Message",
-                            subtitle = "Reply to eligible incoming messages",
-                            checked = settings.everyMessageEnabled,
-                            onCheckedChange = settingsViewModel::setEveryMessageEnabled
-                        )
-                    }
-                    item {
-                        StatusCard()
-                    }
-                    item {
-                        Text(
-                            "More controls are available in Automation " +
-                                "and Settings.",
-                            color = Muted,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-
-                Page.RULES -> {
-                    item {
-                        SectionTitle("AUTOMATION RULES")
-                    }
-                    item {
-                        SettingCard(
-                            title = "Welcome Message",
-                            subtitle = "Greeting for eligible new contacts",
-                            checked = settings.welcomeEnabled,
-                            onCheckedChange = settingsViewModel::setWelcomeEnabled
-                        )
-                    }
-                    item {
-                        SettingCard(
-                            title = "Every Message",
-                            subtitle = "General automatic reply rule",
-                            checked = settings.everyMessageEnabled,
-                            onCheckedChange = settingsViewModel::setEveryMessageEnabled
-                        )
-                    }
-                    item {
-                        InfoCard(
-                            "Rule engine",
-                            "Rules are currently local UI settings. " +
-                                "Message processing will be connected " +
-                                "in a later implementation step."
-                        )
-                    }
-                }
-
-                Page.MESSAGES -> {
-                    item {
-                        SectionTitle("WELCOME MESSAGE")
-                    }
-                    item {
-                        InfoCard(
-                            "Personalise your reply",
-                            "Write the message you want to use " +
-                                "when the rule is triggered."
-                        )
-                    }
-                    item {
-                        OutlinedTextField(
-                            value = settings.welcomeMessage,
-                            onValueChange = settingsViewModel::setWelcomeMessage,
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Welcome message") },
-                            minLines = 5,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Accent,
-                                unfocusedBorderColor = Muted,
-                                focusedLabelColor = Accent,
-                                cursorColor = Accent
-                            )
-                        )
-                        Text(
-                            "${settings.welcomeMessage.length} characters",
-                            color = Muted,
-                            fontSize = 12.sp
-                        )
-                    }
-                    item {
-                        Text(
-                            "Changes are saved locally on this device.",
-                            color = Muted,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Page.SETTINGS -> {
-                    item {
-                        SectionTitle("APP SETTINGS")
-                    }
-                    item {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = Panel
-                            ),
-                            shape = RoundedCornerShape(18.dp)
-                        ) {
-                            Column(
-                                Modifier.padding(18.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Text(
-                                    "Notification Access",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp
-                                )
-                                Text(
-                                    if (notificationAccessGranted) {
-                                        "Permission enabled on this device."
-                                    } else {
-                                        "Permission is not enabled yet."
-                                    },
-                                    color = if (notificationAccessGranted) Green else Muted,
-                                    fontSize = 13.sp
-                                )
-                                Button(
-                                    onClick = {
-                                        context.startActivity(
-                                            Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                                        )
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Open Notification Access Settings")
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        notificationAccessGranted =
-                                            NotificationAccess.isGranted(context)
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Refresh Permission Status")
-                                }
-                            }
-                        }
-                    }
-                    item {
-                        InfoCard(
-                            "Automation settings",
-                            "Auto Reply: ${if (settings.autoReplyEnabled) "ON" else "OFF"}\n" +
-                                "Welcome Message: ${if (settings.welcomeEnabled) "ON" else "OFF"}\n" +
-                                "Every Message: ${if (settings.everyMessageEnabled) "ON" else "OFF"}"
-                        )
-                    }
-                    item {
-                        InfoCard(
-                            "Privacy",
-                            "Settings are stored locally on this device. " +
-                                "This app does not ask for your Telegram password."
-                        )
-                    }
-                    item {
-                        InfoCard(
-                            "Integration status",
-                            "Notification listener is registered. " +
-                                "Automatic reply processing is not implemented yet."
-                        )
-                    }
-                    item {
-                        InfoCard(
-                            "About",
-                            "RTK DEVIL AUTO REPLY\n" +
-                                "Modular Android automation project."
+    MaterialTheme {
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    RTKPage.entries.forEach { item ->
+                        NavigationBarItem(
+                            selected = page == item,
+                            onClick = { page = item },
+                            icon = { Text(item.symbol) },
+                            label = { Text(item.title) }
                         )
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun Header() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            color = Accent.copy(alpha = 0.18f),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Text(
-                "😈",
-                modifier = Modifier.padding(14.dp),
-                fontSize = 28.sp
-            )
-        }
-
-        Spacer(Modifier.width(12.dp))
-
-        Column(Modifier.weight(1f)) {
-            Text(
-                "RTK DEVIL",
-                color = Color.White,
-                fontSize = 23.sp,
-                fontWeight = FontWeight.ExtraBold
-            )
-            Text(
-                "AUTO REPLY",
-                color = Accent,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 2.sp
-            )
-            Text(
-                "Automation, your way.",
-                color = Muted,
-                fontSize = 12.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun HeroCard(
-    enabled: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "AUTOMATION STATUS",
-                        color = Muted,
-                        fontSize = 11.sp,
-                        letterSpacing = 1.5.sp
-                    )
-                    Spacer(Modifier.height(7.dp))
-                    Text(
-                        if (enabled) "Enabled locally" else "Ready to configure",
-                        color = Color.White,
-                        fontSize = 21.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = onToggle,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = Green,
-                        uncheckedThumbColor = Muted
-                    )
-                )
-            }
-
-            HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-
-            Text(
-                if (enabled) {
-                    "Setting is saved. Automatic reply engine is not implemented yet."
-                } else {
-                    "Configure your rules, then connect a supported messaging adapter."
-                },
-                color = Muted,
-                fontSize = 13.sp,
-                lineHeight = 20.sp
-            )
-
-            Surface(
-                color = if (enabled) Green.copy(alpha = 0.12f)
-                else Accent.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(50)
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    if (enabled) "●  UI ENABLED"
-                    else "●  SETUP REQUIRED",
-                    modifier = Modifier.padding(
-                        horizontal = 12.dp,
-                        vertical = 8.dp
-                    ),
-                    color = if (enabled) Green else Accent,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    "RTK DEVIL DEPARTMENT",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    "RTKDevilAutoReply • Independent platform controls",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                HorizontalDivider()
+
+                when (page) {
+                    RTKPage.HOME -> HomePage(
+                        settings = settings,
+                        notificationAccess = NotificationAccess.isGranted(context),
+                        onWhatsApp = { vm.setWhatsappAutoReply(it) },
+                        onTelegram = { vm.setTelegramNotificationEnabled(it) },
+                        onBot = { vm.setTelegramBotAutoReply(it) },
+                        onOpenSettings = { page = RTKPage.SETTINGS }
+                    )
+
+                    RTKPage.WHATSAPP -> WhatsAppPage(
+                        settings = settings,
+                        onEnabled = vm::setWhatsappAutoReply,
+                        onWelcomeEnabled = vm::setWhatsappWelcomeEnabled,
+                        onEveryMessage = vm::setWhatsappEveryMessage,
+                        onWelcome1 = vm::setWhatsappWelcomeMessage1,
+                        onWelcome2 = vm::setWhatsappWelcomeMessage2,
+                        onCustomReply = vm::setWhatsappCustomReply
+                    )
+
+                    RTKPage.TELEGRAM -> TelegramPage(
+                        settings = settings,
+                        onNotificationEnabled = vm::setTelegramNotificationEnabled,
+                        onWelcomeEnabled = vm::setTelegramWelcomeEnabled,
+                        onEveryMessage = vm::setTelegramEveryMessage,
+                        onWelcome1 = vm::setTelegramWelcomeMessage1,
+                        onWelcome2 = vm::setTelegramWelcomeMessage2,
+                        onCustomReply = vm::setTelegramCustomReply,
+                        onBotEnabled = vm::setTelegramBotAutoReply
+                    )
+
+                    RTKPage.SETTINGS -> SettingsPage(
+                        notificationAccess = NotificationAccess.isGranted(context),
+                        onOpenNotificationSettings = {
+                            context.startActivity(
+                                Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                            )
+                        }
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "GitHub: github.com/ritiksinghbabura-tyagirtk",
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -416,122 +136,215 @@ private fun HeroCard(
 }
 
 @Composable
-private fun SectionTitle(title: String) {
-    Text(
-        title,
-        color = Muted,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.4.sp
-    )
+private fun HomePage(
+    settings: AppSettings,
+    notificationAccess: Boolean,
+    onWhatsApp: (Boolean) -> Unit,
+    onTelegram: (Boolean) -> Unit,
+    onBot: (Boolean) -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    SectionCard("Automation status") {
+        ToggleRow(
+            "WhatsApp Auto Reply",
+            settings.whatsappAutoReplyEnabled,
+            onWhatsApp
+        )
+        Text(
+            if (settings.whatsappAutoReplyEnabled)
+                "Enabled in settings; actual replies need Notification Access and a usable Reply action."
+            else "Disabled",
+            style = MaterialTheme.typography.bodySmall
+        )
+        HorizontalDivider()
+        ToggleRow(
+            "Telegram Notification Auto Reply",
+            settings.telegramNotificationEnabled,
+            onTelegram
+        )
+        ToggleRow(
+            "Telegram Bot API Auto Reply",
+            settings.telegramBotAutoReplyEnabled,
+            onBot
+        )
+    }
+
+    SectionCard("Permission status") {
+        Text(
+            if (notificationAccess)
+                "Notification Access: Granted"
+            else
+                "Notification Access: Not granted"
+        )
+        Text(
+            "Both notification-based modules require Android Notification Access.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Button(onClick = onOpenSettings) {
+            Text("Open Settings")
+        }
+    }
+
+    SectionCard("Important") {
+        Text("WhatsApp replies work only when its notification exposes a compatible Reply action.")
+        Text("Telegram Bot API only handles messages sent to your bot, not every chat on your personal Telegram account.")
+    }
 }
 
 @Composable
-private fun SettingCard(
+private fun WhatsAppPage(
+    settings: AppSettings,
+    onEnabled: (Boolean) -> Unit,
+    onWelcomeEnabled: (Boolean) -> Unit,
+    onEveryMessage: (Boolean) -> Unit,
+    onWelcome1: (String) -> Unit,
+    onWelcome2: (String) -> Unit,
+    onCustomReply: (String) -> Unit
+) {
+    SectionCard("WhatsApp Auto Reply") {
+        ToggleRow("Enable WhatsApp replies", settings.whatsappAutoReplyEnabled, onEnabled)
+        ToggleRow("Send first welcome", settings.whatsappWelcomeEnabled, onWelcomeEnabled)
+        ToggleRow("Reply to every eligible message", settings.whatsappEveryMessageEnabled, onEveryMessage)
+
+        Text(
+            "The two welcome fields are combined into one notification reply. Later replies use Custom Reply when enabled.",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        TextEditor(
+            "Welcome Message 1",
+            settings.whatsappWelcomeMessage1,
+            onWelcome1
+        )
+        TextEditor(
+            "Welcome Message 2",
+            settings.whatsappWelcomeMessage2,
+            onWelcome2
+        )
+        TextEditor(
+            "Custom Reply",
+            settings.whatsappCustomReply,
+            onCustomReply
+        )
+    }
+}
+
+@Composable
+private fun TelegramPage(
+    settings: AppSettings,
+    onNotificationEnabled: (Boolean) -> Unit,
+    onWelcomeEnabled: (Boolean) -> Unit,
+    onEveryMessage: (Boolean) -> Unit,
+    onWelcome1: (String) -> Unit,
+    onWelcome2: (String) -> Unit,
+    onCustomReply: (String) -> Unit,
+    onBotEnabled: (Boolean) -> Unit
+) {
+    SectionCard("Telegram notification replies") {
+        ToggleRow(
+            "Enable notification replies",
+            settings.telegramNotificationEnabled,
+            onNotificationEnabled
+        )
+        ToggleRow(
+            "Send first welcome",
+            settings.telegramWelcomeEnabled,
+            onWelcomeEnabled
+        )
+        ToggleRow(
+            "Reply to every eligible message",
+            settings.telegramEveryMessageEnabled,
+            onEveryMessage
+        )
+        TextEditor("Welcome Message 1", settings.telegramWelcomeMessage1, onWelcome1)
+        TextEditor("Welcome Message 2", settings.telegramWelcomeMessage2, onWelcome2)
+        TextEditor("Custom Reply", settings.telegramCustomReply, onCustomReply)
+    }
+
+    SectionCard("Telegram Bot API") {
+        ToggleRow(
+            "Enable Bot API auto replies",
+            settings.telegramBotAutoReplyEnabled,
+            onBotEnabled
+        )
+        Text(
+            "Configure your bot token in the existing Bot Control panel below. Never share your token in chat.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        BotControlCard()
+    }
+}
+
+@Composable
+private fun SettingsPage(
+    notificationAccess: Boolean,
+    onOpenNotificationSettings: () -> Unit
+) {
+    SectionCard("Notification Access") {
+        Text(
+            if (notificationAccess) "Status: Granted" else "Status: Not granted"
+        )
+        Button(onClick = onOpenNotificationSettings) {
+            Text("Manage Notification Access")
+        }
+        Text(
+            "Enable RTK Devil Auto Reply in Android's notification access screen. Return to the app after granting permission.",
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+
+    SectionCard("Privacy and limitations") {
+        Text("Reply processing uses notification actions exposed by the messaging app.")
+        Text("The app should not be force-stopped if you want background notification processing.")
+        Text("Some notifications do not contain reply actions; those messages cannot be answered by this method.")
+    }
+}
+
+@Composable
+private fun SectionCard(
     title: String,
-    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(
+    label: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    title,
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp
-                )
-                Spacer(Modifier.height(5.dp))
-                Text(
-                    subtitle,
-                    color = Muted,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp
-                )
-            }
-
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatusCard() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                "INTEGRATION STATUS",
-                color = Muted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
-            StatusLine("Telegram account", "Not connected")
-            StatusLine("Reply engine", "Not implemented")
-            StatusLine("Local settings", "DataStore")
-        }
-    }
-}
-
-@Composable
-private fun StatusLine(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            color = Color.White,
-            fontSize = 13.sp
-        )
-        Text(
-            value,
-            color = Muted,
-            fontSize = 12.sp
+        Text(label, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
         )
     }
 }
 
 @Composable
-private fun InfoCard(title: String, description: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Panel),
-        shape = RoundedCornerShape(18.dp)
-    ) {
-        Column(
-            Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                title,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp
-            )
-            Text(
-                description,
-                color = Muted,
-                fontSize = 13.sp,
-                lineHeight = 20.sp
-            )
-        }
-    }
+private fun TextEditor(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        minLines = 2
+    )
 }

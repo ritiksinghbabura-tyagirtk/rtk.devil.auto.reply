@@ -104,7 +104,7 @@ class TelegramBotService : Service() {
                         if (update.senderIsBot) continue
 
                         val settings = settingsRepository.settings.first()
-                        if (!settings.autoReplyEnabled) continue
+                        if (!settings.telegramBotAutoReplyEnabled) continue
 
                         val reply = when {
                             settings.welcomeEnabled &&
