@@ -2,6 +2,7 @@ package com.rtk.devil.autoreply.feature.dashboard
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,10 +15,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -37,11 +50,11 @@ import com.rtk.devil.autoreply.core.permissions.NotificationAccess
 import com.rtk.devil.autoreply.data.local.AppSettings
 import com.rtk.devil.autoreply.feature.settings.AppSettingsViewModel
 
-private enum class RTKPage(val title: String, val symbol: String) {
-    HOME("Home", "⌂"),
-    WHATSAPP("WhatsApp", "W"),
-    TELEGRAM("Telegram", "T"),
-    SETTINGS("Settings", "⚙")
+private enum class RTKPage(val title: String, val icon: ImageVector) {
+    HOME("Home", Icons.Filled.Home),
+    WHATSAPP("WhatsApp", Icons.Filled.Chat),
+    TELEGRAM("Telegram", Icons.AutoMirrored.Filled.Send),
+    SETTINGS("Settings", Icons.Filled.Settings)
 }
 
 @Composable
@@ -51,15 +64,47 @@ fun RTKDevilApp() {
     val settings by vm.settings.collectAsState()
     var page by remember { mutableStateOf(RTKPage.HOME) }
 
-    MaterialTheme {
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Color(0xFF39F28B),
+            onPrimary = Color(0xFF062012),
+            secondary = Color(0xFF45D7FF),
+            onSecondary = Color(0xFF061820),
+            tertiary = Color(0xFFB9A0FF),
+            background = Color(0xFF101116),
+            surface = Color(0xFF1B1C25),
+            surfaceVariant = Color(0xFF292B36),
+            onBackground = Color(0xFFF7F8FC),
+            onSurface = Color(0xFFF7F8FC),
+            onSurfaceVariant = Color(0xFFB8F8D2),
+            primaryContainer = Color(0xFF16472D),
+            onPrimaryContainer = Color(0xFFB8FFD3),
+            secondaryContainer = Color(0xFF123747),
+            onSecondaryContainer = Color(0xFFB9EDFF),
+            outline = Color(0xFF52665A)
+        )
+    ) {
         Scaffold(
+            containerColor = Color(0xFF101116),
             bottomBar = {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = Color(0xFF191A22)
+                ) {
                     RTKPage.entries.forEach { item ->
                         NavigationBarItem(
                             selected = page == item,
                             onClick = { page = item },
-                            icon = { Text(item.symbol) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF39F28B),
+                                selectedTextColor = Color(0xFF39F28B),
+                                indicatorColor = Color(0xFF16472D),
+                                unselectedIconColor = Color(0xFFB8F8D2),
+                                unselectedTextColor = Color(0xFFB8F8D2)
+                            ),
+                            icon = { androidx.compose.material3.Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title
+                            ) },
                             label = { Text(item.title) }
                         )
                     }
@@ -71,18 +116,47 @@ fun RTKDevilApp() {
                     .fillMaxSize()
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
+                    .background(Color(0xFF101116))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    "RTK DEVIL DEPARTMENT",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Text(
-                    "RTKDevilAutoReply • Independent platform controls",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                HorizontalDivider()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF17271F)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Filled.Bolt,
+                            contentDescription = "RTK Devil",
+                            tint = Color(0xFF39F28B),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(
+                                "RTK Devil",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = Color(0xFFF7F5FF)
+                            )
+                            Text(
+                                "Auto Reply Manager",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFFC5BED8)
+                            )
+                            Text(
+                                "Manage your messaging automation",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFA9A5B6)
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = Color(0xFF292832))
 
                 when (page) {
                     RTKPage.HOME -> HomePage(
@@ -305,12 +379,22 @@ private fun SectionCard(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1B1C25)
+        )
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF39F28B)
+            )
             content()
         }
     }
@@ -323,10 +407,14 @@ private fun ToggleRow(
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        Text(
+            label,
+            modifier = Modifier.weight(1f).padding(end = 12.dp),
+            style = MaterialTheme.typography.bodyLarge
+        )
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange
