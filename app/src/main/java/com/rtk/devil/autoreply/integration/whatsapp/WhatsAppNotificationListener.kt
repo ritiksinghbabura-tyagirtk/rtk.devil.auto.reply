@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
+import java.util.LinkedHashSet
+import java.util.concurrent.ConcurrentHashMap
 
 class WhatsAppNotificationListener : NotificationListenerService() {
 
@@ -53,26 +55,30 @@ class WhatsAppNotificationListener : NotificationListenerService() {
             "${sbn.packageName}|${sbn.key}|$title|$text"
         )
 
+        // Prevent duplicate callbacks from processing the same notification concurrently.
+        if (!inFlightSignatures.add(notificationHash)) return
+
         serviceScope.launch {
             try {
                 val settings = settingsRepository.settings.first()
-
                 if (!settings.whatsappAutoReplyEnabled) return@launch
 
-                // Ignore the same notification/message signature.
-                if (state.getString("last_signature", null) ==
-                    notificationHash
-                ) return@launch
+                // Keep a bounded history so repeated callbacks do not send another reply.
+                val alreadyProcessed = synchronized(state) {
+                    val recent = state.getStringSet("recent_signatures", null)
+                    notificationHash in (recent ?: emptySet()) ||
+                        state.getString("last_signature", null) == notificationHash
+                }
+                if (alreadyProcessed) return@launch
 
                 val alreadyWelcomed =
                     state.getBoolean("welcomed_$chatHash", false)
 
                 val replyText = when {
-                    settings.whatsappWelcomeEnabled &&
-                        !alreadyWelcomed -> listOf(
-                            settings.whatsappWelcomeMessage1.trim(),
-                            settings.whatsappWelcomeMessage2.trim()
-                        ).filter { it.isNotBlank() }.joinToString("\n\n")
+                    settings.whatsappWelcomeEnabled && !alreadyWelcomed -> listOf(
+                        settings.whatsappWelcomeMessage1.trim(),
+                        settings.whatsappWelcomeMessage2.trim()
+                    ).filter { it.isNotBlank() }.joinToString("\\n\\n")
 
                     settings.whatsappEveryMessageEnabled ->
                         settings.whatsappCustomReply.trim()
@@ -87,23 +93,46 @@ class WhatsAppNotificationListener : NotificationListenerService() {
                 }
 
                 if (sent) {
-                    state.edit()
-                        .putString("last_signature", notificationHash)
-                        .apply()
+                    synchronized(state) {
+                        val recent = LinkedHashSet<String>(
+                            state.getStringSet("recent_signatures", null)
+                                ?: emptySet()
+                        )
+                        recent.add(notificationHash)
 
-                    if (settings.whatsappWelcomeEnabled &&
-                        !alreadyWelcomed
-                    ) {
+                        while (recent.size > 100) {
+                            val iterator = recent.iterator()
+                            if (iterator.hasNext()) {
+                                iterator.next()
+                                iterator.remove()
+                            } else {
+                                break
+                            }
+                        }
+
                         state.edit()
-                            .putBoolean("welcomed_$chatHash", true)
-                            .apply()
+                            .putString("last_signature", notificationHash)
+                            .putStringSet("recent_signatures", recent)
+                            .commit()
+
+                        if (settings.whatsappWelcomeEnabled && !alreadyWelcomed) {
+                            state.edit()
+                                .putBoolean("welcomed_$chatHash", true)
+                                .commit()
+                        }
                     }
                 }
             } catch (e: Exception) {
-                // Do not log message contents or notification text.
-                Log.w(TAG, "Notification reply processing failed: ${e.javaClass.simpleName}")
+                // Never log incoming message contents.
+                Log.w(
+                    TAG,
+                    "Notification reply processing failed: ${e.javaClass.simpleName}"
+                )
+            } finally {
+                inFlightSignatures.remove(notificationHash)
             }
         }
+
     }
 
     private fun sendNotificationReply(
@@ -159,6 +188,9 @@ class WhatsAppNotificationListener : NotificationListenerService() {
     }
 
     companion object {
+        private val inFlightSignatures =
+            ConcurrentHashMap.newKeySet<String>()
+
         private const val TAG = "RTKWhatsAppReply"
 
         val SUPPORTED_PACKAGES = setOf(
